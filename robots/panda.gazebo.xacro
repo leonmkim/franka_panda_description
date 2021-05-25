@@ -69,9 +69,9 @@
           <jointName>panda_peg_joint</jointName>
         </plugin>
       </gazebo>
-    </xacro:if>
+    </xacro:if> -->
 
-    <xacro:if value="${load_gripper}">
+    <!-- <xacro:if value="${load_gripper}">
       <gazebo reference="${robot_name}_hand_joint">
         <disableFixedJointLumping>true</disableFixedJointLumping>
         <sensor name="${robot_name}_hand_joint_force_torque" type="force_torque">
