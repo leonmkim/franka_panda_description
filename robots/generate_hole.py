@@ -51,7 +51,7 @@ def gen_hole(inner_radius, outer_radius, height, num_facets, fraction=1.0, conne
             'xyz':(x_pos[i], y_pos[i], height/2),
             'rpy':(0, 0, np.pi/2 + theta[i]),
             # 'size':(width/2, depth/2, height/2),
-            'size':(width/2, depth/2, height),
+            'size':(width, depth, height),
         })
         # else:
         #     geoms.append({
@@ -90,7 +90,7 @@ def write_xml(filename, element):
         f.write(pretty_xml_string)
 
 
-def assemble_urdf_xml(geoms):
+def assemble_urdf_xml(geoms, is_static=True):
     '''
     Assembles a list of geoms into XML that can be read by URDF
     '''
@@ -98,8 +98,18 @@ def assemble_urdf_xml(geoms):
     robot = ET.Element('robot')
     add_attributes(robot, {'name':'hole', 'xmlns:xacro':'http://www.ros.org/wiki/xacro'})
 
+    # Bottom of center of hole
     link = ET.SubElement(robot, 'link')
     add_attributes(link, {'name':'hole_link'})
+
+    # Add arbitrary mass/inertia so gazebo doesn't complain
+    inertial = ET.SubElement(link, 'inertial')
+    mass = ET.SubElement(inertial, 'mass')
+    mass.set('value', '1')
+    inertia = ET.SubElement(inertial, 'inertia')
+    add_attributes(inertia, {'ixx':'1', 'iyy':'1', 'izz':'1', 'ixy':'0', 'ixz':'0', 'iyz':'0',})
+
+
 
 
     # Adds all of the geoms to the collision and visual elems
@@ -128,16 +138,27 @@ def assemble_urdf_xml(geoms):
         vis_shape = ET.SubElement(vis_geom, g['geometry'])
         # add_attributes(vis_shape, g['size'])
         vis_shape.set('size', " ".join([str(v) for v in g['size']]))
+    
+    # Gazebo specific tags
+    gazebo = ET.SubElement(robot, 'gazebo')
+
+    material = ET.SubElement(gazebo, 'material')
+    material.text = 'Gazebo/gray'
+
+    static = ET.SubElement(gazebo, 'static')
+    static.text = 'true'
 
     return robot
 
 if __name__ == "__main__":
-
-    # Generate and save a hole.
-    hole_geoms = gen_hole(0.0068, .05, .05, 16)
-    hole_xml = assemble_urdf_xml(hole_geoms)    
-    filename = 'polyhedral_hole_inner=0-0068_outer=0-05_height=0-05_num_facets=16.urdf'
-    model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'holes', filename)
+    # Generate hole sized for the peg on the robot
+    # 0.0127 is radius of peg
+    # 0.111125 is length
+    hole_geoms = gen_hole(0.0135, .03, .12, 16) #inner radius, outer radius, height, num of facets 
+    hole_xml = assemble_urdf_xml(hole_geoms, True)    
+    filename = 'hole.urdf'
+    # model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'holes', filename)
+    model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), filename)
     # print(model_path)
     write_xml(model_path, hole_xml)
 
